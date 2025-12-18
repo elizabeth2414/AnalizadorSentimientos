@@ -2,6 +2,8 @@
 # IMPORTACIONES
 # =========================
 
+import os
+
 # Streamlit: framework para crear apps web con Python
 import streamlit as st
 
@@ -116,33 +118,21 @@ texto_espanol = st.text_area(
 
 # Botón para grabar audio
 if st.button("🎙️ Hablar (usar micrófono)"):
-    try:
-        # Creamos el reconocedor de voz
-        recognizer = sr.Recognizer()
+    if "STREAMLIT_RUNTIME" in os.environ:
+        st.warning("🎙️ El micrófono no está disponible en Streamlit Cloud. Usa subida de audio.")
+    else:
+        try:
+            recognizer = sr.Recognizer()
+            with sr.Microphone() as source:
+                st.info("🎧 Escuchando... habla ahora")
+                recognizer.adjust_for_ambient_noise(source, duration=0.5)
+                audio = recognizer.listen(source)
 
-        # Accedemos al micrófono
-        with sr.Microphone() as source:
-            st.info("🎧 Escuchando... habla ahora")
+            texto_espanol = recognizer.recognize_google(audio, language="es-ES")
+            st.success(f"🗣️ Texto reconocido: {texto_espanol}")
 
-            # Ajusta el ruido ambiente
-            recognizer.adjust_for_ambient_noise(source, duration=0.5)
-
-            # Escucha el audio del usuario
-            audio = recognizer.listen(source)
-
-        # Convertimos la voz a texto usando Google Speech
-        texto_espanol = recognizer.recognize_google(audio, language="es-ES")
-
-        # Mostramos el texto reconocido
-        st.success(f"🗣️ Texto reconocido: {texto_espanol}")
-
-    except sr.UnknownValueError:
-        # Error si no se entiende la voz
-        st.error("❌ No se pudo entender el audio")
-
-    except sr.RequestError as e:
-        # Error de conexión con el servicio de Google
-        st.error(f"❌ Error del servicio de reconocimiento: {e}")
+        except Exception as e:
+            st.error(f"Error de audio: {e}")
 
 
 # =========================
